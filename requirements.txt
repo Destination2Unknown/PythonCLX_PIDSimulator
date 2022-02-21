@@ -1,5 +1,0 @@
-matplotlib
-numpy
-pylogix
-pandas
-pycomm3
