@@ -102,7 +102,7 @@ def start():
         else:
             pv=process.update(float(ambient.get()))
         #Add Noise between -0.1 and 0.1
-        noise=0.1-random.randint(0,10)/50
+        noise=(random.randint(0,10)/100)-0.05
         #Store PV
         gData.storepv(pv[0]+noise)
         #Write PV to PLC   
