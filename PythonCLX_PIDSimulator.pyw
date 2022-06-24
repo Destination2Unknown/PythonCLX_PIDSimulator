@@ -2,9 +2,41 @@ import tkinter as tk
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import threading
+import time
 from matplotlib import animation
 from scipy.integrate import odeint
 from pylogix import PLC
+
+class PeriodicInterval(threading.Thread):
+    def __init__(self, task_function, period):
+        super().__init__()
+        self.daemon = True
+        self.task_function = task_function
+        self.period = period
+        self.i = 0
+        self.t0 = time.time()
+        self.stopper=0
+        self.start()
+        
+    def sleep(self):
+        self.i += 1
+        delta = self.t0 + self.period * self.i - time.time()
+        if delta > 0:
+            time.sleep(delta)
+    
+    def run(self):
+        while self.stopper==0:
+            self.task_function()
+            self.sleep()
+
+    def stop(self):
+        self.stopper=1
+
+    def starter(self):
+        self.stopper=0  
+        self.i = 0
+        self.t0 = time.time()
 
 class data(object):
     def __init__(self):      
@@ -28,10 +60,12 @@ class FOPDTModel(object):
         self.Gain, self.TimeConstant, self.DeadTime, self.Bias = ModelData
 
     def calc(self,PV,ts):                       
-        if (self.t-self.DeadTime*10) <= 0:
+        if (ts-self.DeadTime*10) <= 0:
             um=0
+        elif int(ts-self.DeadTime*10)>=len(self.CV):
+            um=self.CV[-1]
         else:
-            um=self.CV[self.t-int(self.DeadTime*10)]
+            um=self.CV[int(ts-self.DeadTime*10)]
         dydt = (-(PV-self.Bias) + self.Gain * um)/(self.TimeConstant*10)
         return dydt
 
@@ -52,11 +86,9 @@ def fopdtsetup():
     spstatus.set("")
     pvstatus.set("")
     cvstatus.set("")
-
-def start():
-    global looper
     comm.IPAddress = ip.get()
     comm.ProcessorSlot = int(slot.get()) 
+    comm.SocketTimeout = 1
     button_start["state"] = "disabled"
     button_stop["state"] = "normal"
     button_trend["state"] = "normal"
@@ -66,7 +98,12 @@ def start():
     modeltc.configure(state="disabled")
     modeldt.configure(state="disabled")
     ambient.configure(state="disabled")
+        
+def thread_start():    
+    global looper
+    looper = PeriodicInterval(start, 0.1)
 
+def start():
     try:
         ret = comm.Read([cvtag.get(),sptag.get()])
         if ret[0].Status=='Success':
@@ -115,8 +152,6 @@ def start():
            
     except Exception as e:
         pvstatus.set('An exception occurred: {}'.format(e))     
-
-    looper=root.after(100, start)
     
 def stop():
     button_start["state"] = "normal"
@@ -131,16 +166,17 @@ def stop():
     sptag.configure(state="normal")
     ambient.configure(state="normal")
     gData.livetrend=0
-    root.after_cancel(looper)
+    if 'looper' in globals():
+            looper.stop()
     comm.Close()
     
 def livetrend(): 
     #Set up the figure
     fig = plt.figure()
     ax = plt.axes(xlim=(0,100),ylim=(0, 100))
-    SP, = ax.plot([], [], lw=2, label='SP')
-    PV, = ax.plot([], [], lw=2, label='PV')
-    CV, = ax.plot([], [], lw=2, label='CV')
+    SP, = ax.plot([], [], lw=2, color="Red", label='SP')
+    CV, = ax.plot([], [], lw=2, color="Green", label='CV')
+    PV, = ax.plot([], [], lw=2, color="Blue", label='PV')
 
     #Setup Func
     def init():
@@ -161,7 +197,7 @@ def livetrend():
         ax.set_xlim(0,max(x)*1.1)
         max_y=max(max(gData.PV),max(gData.CV),max(gData.SP))
         min_y=min(min(gData.PV),min(gData.CV),min(gData.SP))
-        ax.set_ylim(min_y-10,max_y+10)
+        ax.set_ylim(min_y-1,max_y+1)
         SP.set_data(x,gData.SP)
         CV.set_data(x,gData.CV)
         PV.set_data(x,gData.PV)
@@ -253,7 +289,7 @@ ambient.insert(5, "13.5")
 
 #Buttons
 #Start Button Placement
-button_start = tk.Button(root, text="Start Simulator", command=lambda :[fopdtsetup(),start()])
+button_start = tk.Button(root, text="Start Simulator", command=lambda :[fopdtsetup(),thread_start()])
 button_start.grid(row=4,column=0,columnspan=1,padx=10 ,pady=2,sticky="NESW")
 
 #Stop Button Placement
@@ -265,13 +301,11 @@ button_trend = tk.Button(root, text="Show Trend", command=lambda :[livetrend()])
 button_trend.grid(row=5,column=0,columnspan=2,padx=10 ,pady=2,sticky="NESW")
 button_trend["state"] = "disabled"
 
-comm=PLC()
-
-#default process 
+#default setup 
 params=0,0
 model= (modelgain.get(),modeltc.get(),modeldt.get(),13.1)
 process=FOPDTModel(params, model)
-
 gData=data()
+comm=PLC()
 
 root.mainloop()
