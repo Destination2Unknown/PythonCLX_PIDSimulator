@@ -4,10 +4,8 @@
 GUI:
 
 
-![image](https://user-images.githubusercontent.com/92536730/154956777-90d33c01-c854-4932-b8f8-92e7146d0931.png)
+![PID_Logger](https://github.com/Destination2Unknown/PythonCLX_PIDSimulator/assets/92536730/69efe7f1-563f-4353-b4f1-7f9612cceca8)
 
-
-![PID1](https://user-images.githubusercontent.com/92536730/154956949-9abb8988-5c0a-4a7d-b5ad-64cd2e27bb62.png)
 
 
 SP and CV are Read from the PLC - PV is written to the PLC
