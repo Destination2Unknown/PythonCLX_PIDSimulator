@@ -255,8 +255,8 @@ class PIDSimForCLX(object):
                     gui_tags[i].set(round(ret_values[i], 3))
                 else:
                     self.gui_status.set(ret_states[i])
-            if not all(ret_values):
-                raise Exception(ret_states[0])
+            if not all(x == "Success" for x in ret_states):
+                raise Exception(ret_states[0] + " " + ret_states[1])
             # Store Data when it is read
             self.CV = np.append(self.CV, ret_values[0])
             self.SP = np.append(self.SP, ret_values[1])
