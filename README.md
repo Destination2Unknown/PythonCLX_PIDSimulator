@@ -4,7 +4,7 @@
 GUI:
 
 
-![PID_Logger](https://github.com/Destination2Unknown/PythonCLX_PIDSimulator/assets/92536730/69efe7f1-563f-4353-b4f1-7f9612cceca8)
+![PID_Sim](https://github.com/Destination2Unknown/PythonCLX_PIDSimulator/assets/92536730/1e441359-a999-41a2-b821-1571d1576793)
 
 
 
